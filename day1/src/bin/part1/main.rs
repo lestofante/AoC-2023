@@ -12,7 +12,7 @@ fn main() {
                 let mut first: Option<u32> = None;
                 let mut second: Option<u32> = None;
                 for c in line.chars() { 
-                    if c >= '0' && c <= '9'{
+                    if c.is_digit(10){
                         if first.is_none(){
                             first = c.to_digit(10);
                         }else {
