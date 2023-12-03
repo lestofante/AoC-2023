@@ -1,5 +1,46 @@
 use std::collections::HashMap;
 
+macro_rules! struct_map {
+    (struct $name:ident: $ftype:ty { $($fname:ident),* $(,)* }) => {
+        struct $name {
+            $($fname : $ftype),*
+        }
+
+        impl $name {
+            fn from_string(self, maybe_key: &str) -> Option<$ftype> {
+                match maybe_key{
+                    $(
+                        stringify!($fname) => Some(self.$fname),
+                    )*
+                    _ => None,
+                }
+            }
+        }
+    }
+}
+
+struct_map! {
+    struct Mappa: u32 {
+        red,
+        blue,
+        green,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+    
+    #[test]
+    fn test_map() {
+        let my_instance = Mappa { red: 42, blue: 24, green: 12 };
+        let result = my_instance.from_string("blue");
+        assert_eq!(result.unwrap(), 24);
+    }
+
+}
+
 fn main() {
     let input_file = include_str!("../../../data/input.txt");
     // Game 1: 9 red, 5 blue, 6 green; 6 red, 13 blue; 2 blue, 7 green, 5 red
