@@ -1,6 +1,7 @@
 struct Ticket{
     winning: Vec<i32>,
     extracted: Vec<i32>,
+    won: usize,
 }
 
 fn load() -> Vec<Ticket>{
@@ -10,6 +11,7 @@ fn load() -> Vec<Ticket>{
     tickets.push(Ticket{
         winning: vec!(),
         extracted: vec!(),
+        won: 0,
     });
     for line in input_file.lines() {
         let title: Vec<&str> = line.split(':').collect();
@@ -20,9 +22,16 @@ fn load() -> Vec<Ticket>{
         println!("winning {winning:?}");
         let extracted: Vec<i32> = lists[1].split_whitespace().map(|s| s.parse().expect("parse error")).collect();
         println!("extracted {extracted:?}");
+        let mut won = 0;
+        for ext in &extracted{
+            if winning.contains(&ext){
+                won += 1;
+            }
+        }
         tickets.push(Ticket{
             winning,
             extracted,
+            won,
         });
     }
     tickets
@@ -38,17 +47,9 @@ fn main() {
     let mut index = 0;
     while index < my_tickets.len(){
         let ticket_id = my_tickets[index];
-        let mut won = 0;
-        for ext in &tickets[ticket_id].extracted{
-            if tickets[ticket_id].winning.contains(&ext){
-                won += 1;
-            }
-        }
-        println!("ticket {index} is id {ticket_id} and won {won} tickets");
-        for i in 0..won{
+        for i in 0..tickets[ticket_id].won{
             my_tickets.push(ticket_id+i+1);
         }
-        println!("parital {won:?}");
         index += 1;
     }
     println!("won {}", my_tickets.len());
