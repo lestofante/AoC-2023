@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use module::*;
 
-generate_map!("../../data/test.txt");
+generate_map!("../../data/input.txt");
 
 fn get_chain(v: usize) -> usize{
     let ris = seed_to_soil_map(v);
@@ -16,7 +16,7 @@ fn get_chain(v: usize) -> usize{
 
 fn main() {
 
-    let mut input_file_sections = include_str!("../../../data/test.txt").split("\n\n");
+    let mut input_file_sections = include_str!("../../../data/input.txt").split("\n\n");
     
     let mut seeds_ranges = input_file_sections.next().unwrap().split_whitespace().skip(1);
     let mut min_location = usize::MAX;
@@ -25,13 +25,13 @@ fn main() {
         let start: usize = start.parse().unwrap();
         let end: usize = start + number.parse::<usize>().unwrap();
         let mut ranges: Vec<_> = (start..=end).collect();
-        let v = ranges.iter_mut().map(|v| get_chain( *v)).reduce(|a, b| a.min(b)).unwrap();
+        let v = ranges.par_iter_mut().map(|v| get_chain( *v)).reduce_with(|a, b| a.min(b)).unwrap();
         if v < min_location{
             min_location = v;
         }
     }
     println!("min_location is {min_location}");
-    //assert!(min_location == 47909639);
+    assert!(min_location == 47909639);
 }
 
 #[cfg(test)]
