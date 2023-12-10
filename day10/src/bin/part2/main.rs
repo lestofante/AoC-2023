@@ -116,7 +116,7 @@ fn formica(entrata: Direction, mut posizione: Point, map: &Vec<Vec<Tube>>) -> Op
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum Col{
     L,
     R,
@@ -287,7 +287,32 @@ fn run(mut d: Direction, mut p: Point, map: &Vec<Vec<Tube>>){
         print!("\n");
     }
 
-    println!("Total green: {count_g}\n Total red :{count_r}");
+    let mut color_solution = Col::N;
+
+    for r in &map_color[0]{
+        if r == &Col::L || r == &Col::L{
+            color_solution = Col::R;
+            break;
+        }
+        if r == &Col::R || r == &Col::R{
+            color_solution = Col::L;
+            break;
+        }
+    }
+    if color_solution == Col::N{
+        for r in map_color{
+            if r.first() == Some(&Col::L) || r.last() == Some(&Col::L){
+                color_solution = Col::R;
+                break;
+            }
+            if r.first() == Some(&Col::R) || r.last() == Some(&Col::R){
+                color_solution = Col::L;
+                break;
+            }
+        }
+    }
+
+    println!("Total R: {count_g}\nTotal L :{count_r}\nSolution is letter {color_solution:?}");
 }
 
 fn main() {
