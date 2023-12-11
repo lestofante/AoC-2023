@@ -121,14 +121,6 @@ fn main() {
 
     //data.print();
 
-/*
-
-    let data: Vec<Point> = data.iter().enumerate().flat_map(
-        |(y, line)|{
-        line.iter().enumerate().filter(|(_, val)| **val).map(move |(x, _)|Point{x, y})
-        }
-    ).collect();
-*/
     data.sum();
 
 }
