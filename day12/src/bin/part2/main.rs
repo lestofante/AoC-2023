@@ -103,6 +103,91 @@ fn check_group(bytes: &Vec<u8>, d: &Element) -> bool{
     return true;
 }
 
+fn find_combinations_old(d: &Element)->usize{
+    let sum_expected_hash: usize = d.groups.iter().sum();
+    let sum_unk = d.line.chars().filter(|c| *c == '?').count();
+    let sum_known_hash = d.line.chars().filter(|c| *c == '#').count();
+
+    let missing_hash = sum_expected_hash - sum_known_hash;
+    let min = 2_usize.pow(missing_hash as u32) - 1;
+    let max =2_usize.pow(sum_unk as u32) - 1;
+    println!("------\n{missing_hash} from {min:b} to {max:b} for {} {:?}", d.line, d.groups);
+    let str = d.line.to_owned();
+
+    let mut bytes = str.into_bytes();
+    let chars: Vec<usize> = bytes.iter().enumerate().filter(|(_, c)| **c == b'?').map(|(n, _)| n).collect();
+    
+    let mut sum_combination = 0;
+
+    for mut n in min..=max{
+        let mut sum_hash = 0;
+        for c in &chars{
+            if n & 1 == 1{
+                bytes[*c] = b'#';
+                sum_hash+=1;
+            }else{
+                bytes[*c] = b'.';
+            }
+            n = n >> 1;
+        }
+        
+        //println!("sum_hash {sum_hash} missing_hash {missing_hash} for {}", String::from_utf8(bytes.clone()).unwrap());
+        if sum_hash != missing_hash{
+            continue;
+        }
+
+    }
+    println!("gen complete");
+    for mut n in min..=max{
+
+        let mut sum_hash = 0;
+        for c in &chars{
+            if n & 1 == 1{
+                bytes[*c] = b'#';
+                sum_hash+=1;
+            }else{
+                bytes[*c] = b'.';
+            }
+            n = n >> 1;
+        }
+        
+        //println!("sum_hash {sum_hash} missing_hash {missing_hash} for {}", String::from_utf8(bytes.clone()).unwrap());
+        if sum_hash != missing_hash{
+            continue;
+        }
+
+        let mut in_group = false;
+        let mut sum = 0;
+        let mut iter_groups = d.groups.iter();
+        for b in &bytes{
+            if in_group && *b == b'#'{
+                sum += 1;
+            }
+            if !in_group && *b == b'#'{
+                in_group = true;
+                sum += 1;
+            }
+            if in_group && *b == b'.'{
+                in_group = false;
+                let expected = iter_groups.next();
+                if *expected.unwrap_or(&0) != sum{
+                    continue;
+                }
+                sum = 0;
+            }
+        }
+        if in_group{
+            let expected = iter_groups.next();
+            if *expected.unwrap_or(&0) != sum{
+                continue;
+            }
+        }
+        sum_combination += 1;
+    }
+    println!("check complete");
+    return sum_combination;
+}
+
 fn find_combinations(d: &Element)->usize{
     let sum_expected_hash: usize = d.groups.iter().sum();
     let sum_unk = d.line.chars().filter(|c| *c == '?').count();
@@ -161,7 +246,7 @@ fn main() {
     
     let mut sum = 0;
     for d in data{
-        sum += find_combinations(&d);
+        sum += find_combinations_old(&d);
     }
     println!("{sum}");
 }
@@ -175,38 +260,38 @@ mod tests {
     #[test]
     fn test() {
 
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![1,1,3,1,1,3,1,1,3,1,1,3,1,1,3],
             line: "???.###????.###????.###????.###????.###".to_owned(),
         }), 1);
 
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![1,1,3,1,1,3,1,1,3,1,1,3,1,1,3],
             line: ".??..??...?##.?.??..??...?##.?.??..??...?##.?.??..??...?##.?.??..??...?##.".to_owned(),
         }), 1);
 
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![1,1,3],
             line: "???.###".to_owned(),
         }), 1);
 
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![1,1,3],
             line: ".??..??...?##.".to_owned(),
         }), 4);
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![1,3,1,6],
             line: "?#?#?#?#?#?#?#?".to_owned(),
         }), 1);
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![4,1,1],
             line: "????.#...#...".to_owned(),
         }), 1);
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![1,6,5],
             line: "????.######..#####.".to_owned(),
         }), 4);
-        assert_eq!(find_combinations(&Element{
+        assert_eq!(find_combinations_old(&Element{
             groups: vec![3,2,1],
             line: "?###????????".to_owned(),
         }), 10);     
