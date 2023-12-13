@@ -17,8 +17,9 @@ impl Map {
     }
 }
 
-fn is_power_of_two(n: u32) -> bool {
-    n != 0 && (n & (n - 1)) == 0
+fn differ_by_one_bit(a: usize, b: usize) -> bool {
+    let xor_result = a ^ b;
+    xor_result != 0 && xor_result & (xor_result - 1) == 0
 }
 
 fn parse(data:&str) -> Vec<Map>{
@@ -72,12 +73,12 @@ fn print(map: &Map){
 fn find_possible_match(map: &Vec<usize>) -> Option<usize>{
     let len = map.len();
     for a in 0..len - 1 {
-        if map[a] == map[a+1]{
-            println!("possible match at {a} {:b} {:b}", map[a], map[a+1]);
+        //if differ_by_one_bit(map[a], map[a+1]){
+            //println!("possible match at {a} {:b} {:b}", map[a], map[a+1]);
             if check_mirror(a, map){
                 return Some(a+1);
             }
-        }
+        //}
     }
     return None;
 }
@@ -86,14 +87,22 @@ fn check_mirror(a: usize, map: &[usize]) -> bool {
     let len = map.len();
     let b = a+1;
     let min = std::cmp::min(b, len-b);
+    let mut smudge_found = false;
     println!("min {min} at {} {}", a, len-b);
-    for i in 1..min{
+    for i in 0..min{
         println!("checkin match {i} at {} {} {:b} {:b}", a-i, b+i, map[a-i], map[b+i]);
         if map[a-i] != map[b+i]{
+            if !smudge_found{
+                if differ_by_one_bit(map[a-i], map[b+i]){
+                    smudge_found = true;
+                    continue;
+                }
+            }
             return false;
         }
     }
-    true
+    //must find a smudge
+    smudge_found
 }
 
 fn main() {
@@ -126,13 +135,13 @@ mod tests {
 
     #[test]
     fn test() {
-        let numbers = vec![1, 2, 4, 6, 8, 16, 24, 32, 33, 63, 64, 65];
+        let numbers = vec![1, 2, 4, 6, 8, 16, 24, 32, 33, 63, 64, 65, 73];
 
-        for &number in &numbers {
-            if is_power_of_two(number) {
-                println!("{} is a power of 2", number);
+        for i in 0..numbers.len()-1 {
+            if differ_by_one_bit(numbers[i], numbers[i+1]) {
+                println!("{:b} {:b} differ_by_one_bit", numbers[i], numbers[i+1]);
             } else {
-                println!("{} is not a power of 2", number);
+                println!("{:b} {:b} NO differ_by_one_bit", numbers[i], numbers[i+1]);
             }
         }
       
