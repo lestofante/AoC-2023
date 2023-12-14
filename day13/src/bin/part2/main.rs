@@ -73,12 +73,9 @@ fn print(map: &Map){
 fn find_possible_match(map: &Vec<usize>) -> Option<usize>{
     let len = map.len();
     for a in 0..len - 1 {
-        //if differ_by_one_bit(map[a], map[a+1]){
-            //println!("possible match at {a} {:b} {:b}", map[a], map[a+1]);
-            if check_mirror(a, map){
-                return Some(a+1);
-            }
-        //}
+        if check_mirror(a, map){
+            return Some(a+1);
+        }
     }
     return None;
 }

@@ -226,6 +226,64 @@ fn find_combinations(d: &Element)->usize{
     return sum_combination;
 }
 
+fn p(c: char, mut iter_groups: impl Iterator<Item = usize>, mut iter_chars: std::str::Chars, counter: &mut usize){
+
+    match c{
+        '#' => {
+            if let Some(group) = iter_groups.next(){
+                for _ in 0..group-1{
+                    if let Some(c) = iter_chars.next(){
+                        if c == '.'{
+                            return;
+                        }
+                    }else{
+                        return;
+                    }
+                }
+                if let Some(c) = iter_chars.next(){
+                    if c == '#'{
+                        return;
+                    }
+                    return p(c, iter_groups, iter_chars, counter);
+                }
+                // no more char, ok if we also finish the groups
+                if iter_groups.next().is_none(){
+                    *counter += 1;
+                } 
+            }else{
+                return;
+            }
+            
+        }
+        '.' => {
+            if let Some(c) = iter_chars.next(){
+                p(c, iter_groups, iter_chars, counter);
+            }
+            // no more char, ok if we also finish the groups
+            if iter_groups.next().is_none(){
+                *counter += 1;
+            } 
+        }
+        '?' => {
+            p('#', &iter_groups.cloned(), iter_chars, counter);
+            p('.', iter_groups, iter_chars, counter);
+        }
+        _ => {
+            assert!(false);
+            return;
+        }
+    }
+}
+
+fn find_combinations3(d: &Element)->usize{
+    let mut iter_groups = d.groups.iter();
+    let mut iter_chars = d.line.chars();
+    while let Some(c) = iter_chars.next(){
+        
+    }
+    0
+}
+
 fn parse(data:&str) -> Vec<Element>{
     data.lines().map(|line| {
         let line = line.split(" ").collect::<Vec<&str>>();
