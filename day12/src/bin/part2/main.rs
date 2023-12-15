@@ -265,7 +265,7 @@ fn p(c: char, mut iter_groups: impl Iterator<Item = usize>, mut iter_chars: std:
             } 
         }
         '?' => {
-            p('#', &iter_groups.cloned(), iter_chars, counter);
+            p('#', iter_groups.cloned(), iter_chars, counter);
             p('.', iter_groups, iter_chars, counter);
         }
         _ => {
