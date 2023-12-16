@@ -212,27 +212,68 @@ fn find_next_cell(ver: Versor, map: &Map, map_visit: &mut MapVisited, count: usi
         }
         return sum;
     }else{
-        println!("at {ver:?} DEAD END");
+        //println!("at {ver:?} DEAD END");
         return 0;
     }
 }
 
 
 const DATA: &[u8] = include_bytes!("../../../data/input.txt");
-const LEN:usize = DATA.len();
 
 fn main() {
     
     let data = Map::new(DATA);
 
-    let mut data_visit = MapVisited::new(data.cols);
-
     data.print();
 
-    let start = Versor{
-        dir: LightPath::LR,
-        p: Point{x:0, y:0}
-    };
-    let sum = find_next_cell(start, &data, &mut data_visit, 0);
-    println!("sum {sum}")
+    let mut max = 0;
+
+    for x in 0..data.cols{
+        let start = Versor{
+            dir: LightPath::NS,
+            p: Point{x:x as isize, y:0}
+        };
+        let mut data_visit = MapVisited::new(data.cols);
+        let sum = find_next_cell(start, &data, &mut data_visit, 0);
+        println!("sum {x},0 {sum}");
+        if sum > max{
+            max = sum;
+        }
+
+        let start = Versor{
+            dir: LightPath::SN,
+            p: Point{x:x as isize, y:data.cols as isize -1}
+        };
+        let mut data_visit = MapVisited::new(data.cols);
+        let sum = find_next_cell(start, &data, &mut data_visit, 0);
+        println!("sum {x},{} {sum}", data.cols-1);
+        if sum > max{
+            max = sum;
+        }
+    }
+
+    for y in 0..data.cols{
+        let start = Versor{
+            dir: LightPath::LR,
+            p: Point{x:0 as isize, y:y as isize}
+        };
+        let mut data_visit = MapVisited::new(data.cols);
+        let sum = find_next_cell(start, &data, &mut data_visit, 0);
+        println!("sum 0,{y} {sum}");
+        if sum > max{
+            max = sum;
+        }
+
+        let start = Versor{
+            dir: LightPath::RL,
+            p: Point{x:data.cols as isize -1 as isize, y:y as isize}
+        };
+        let mut data_visit = MapVisited::new(data.cols);
+        let sum = find_next_cell(start, &data, &mut data_visit, 0);
+        println!("sum {},{y} {sum}", data.cols-1);
+        if sum > max{
+            max = sum;
+        }
+    }
+    println!("max is {max}");
 }
