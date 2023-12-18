@@ -104,32 +104,6 @@ impl PointHistory {
     //let mut new_full_history_ord = self.full_history_ordered.clone();
     //new_full_history_ord.push(self.actual);
 
-    if sum_direction[Direction::RIGHT as usize] < 3 && !self.history.back().is_some_and(|v| *v == Direction::LEFT){
-      // travel +x ok
-      let next = Point::new(self.actual.x + 1, self.actual.y);
-      if next.is_valid() && !new_full_history.contains(&next) {
-        if print{
-          println!("going RIGHT");
-        }
-        let mut n = new_history.clone();
-        n.push_back(Direction::RIGHT);
-        successors.push((PointHistory::new(next, n, new_full_history.clone(), new_full_history_ord.clone()), grid[next.y as usize][next.x as usize]));
-      }
-    }
-
-    if sum_direction[Direction::DOWN as usize] < 3 && !self.history.back().is_some_and(|v| *v == Direction::UP){
-      // travel +y ok
-      let next = Point::new(self.actual.x, self.actual.y + 1);
-      if next.is_valid() && !new_full_history.contains(&next){
-        if print{
-          println!("going DOWN");
-        }
-        let mut n = new_history.clone();
-        n.push_back(Direction::DOWN);
-        successors.push((PointHistory::new(next, n, new_full_history.clone(), new_full_history_ord.clone()), grid[next.y as usize][next.x as usize]));
-      }
-    }
-
     if sum_direction[Direction::LEFT as usize] < 3 && !self.history.back().is_some_and(|v| *v == Direction::RIGHT){
       // travel -x ok
       let next = Point::new(self.actual.x - 1, self.actual.y);
@@ -152,6 +126,32 @@ impl PointHistory {
         }
         let mut n = new_history.clone();
         n.push_back(Direction::UP);
+        successors.push((PointHistory::new(next, n, new_full_history.clone(), new_full_history_ord.clone()), grid[next.y as usize][next.x as usize]));
+      }
+    }
+
+    if sum_direction[Direction::RIGHT as usize] < 3 && !self.history.back().is_some_and(|v| *v == Direction::LEFT){
+      // travel +x ok
+      let next = Point::new(self.actual.x + 1, self.actual.y);
+      if next.is_valid() && !new_full_history.contains(&next) {
+        if print{
+          println!("going RIGHT");
+        }
+        let mut n = new_history.clone();
+        n.push_back(Direction::RIGHT);
+        successors.push((PointHistory::new(next, n, new_full_history.clone(), new_full_history_ord.clone()), grid[next.y as usize][next.x as usize]));
+      }
+    }
+
+    if sum_direction[Direction::DOWN as usize] < 3 && !self.history.back().is_some_and(|v| *v == Direction::UP){
+      // travel +y ok
+      let next = Point::new(self.actual.x, self.actual.y + 1);
+      if next.is_valid() && !new_full_history.contains(&next){
+        if print{
+          println!("going DOWN");
+        }
+        let mut n = new_history.clone();
+        n.push_back(Direction::DOWN);
         successors.push((PointHistory::new(next, n, new_full_history.clone(), new_full_history_ord.clone()), grid[next.y as usize][next.x as usize]));
       }
     }
@@ -205,18 +205,16 @@ fn bruteforce2(start: &PointHistory, grid: &Vec<Vec<u32>>, end: &Point) {
   let mut cheaper = worst_cost;
   let mut solution: Vec<PointWeight> = vec![];
   while let Some(current) = stack.pop_back() {
-    //println!("at: {:?}", current.p.actual);
-
 
     if current.p.actual == *end {
       if current.w < cheaper{
         cheaper = current.w;
-        solution.push(current.clone());
+        //solution.push(current.clone());
         
         let mut i = 0;
         let mut purged = 0;
         while i < stack.len(){
-          if stack[i].w > cheaper{
+          if stack[i].w + stack[i].p.actual.len(end) as u32 > cheaper{
             stack.remove(i);
             purged+=1;
           }else{
@@ -225,70 +223,18 @@ fn bruteforce2(start: &PointHistory, grid: &Vec<Vec<u32>>, end: &Point) {
         }
         println!("Found path, cost: {} {:?} {:?} purged {purged}", current.w, current.p.full_history_ordered, current.p.actual);
       }
+      continue;
+    }
+
+    if current.p.actual.len(end) + current.w as isize + 1 > cheaper as isize{
+      continue;
     }
 
     for path in current.p.successors(grid) {
 
-      if path.0.actual.len(end) + path.1 as isize + current.w as isize > cheaper as isize{
-        //println!("ignored");
-        continue;
-      }
-
       let mut print = false;
-      // let desired: Vec<Point> = vec![
-      //   Point{x:0, y:0},
-      //   Point{x:1, y:0},
-      //   Point{x:2, y:0},
-      //   Point{x:2, y:1},
-        
-      //   Point{x:3, y:1},
-        
-      //   Point{x:4, y:1},
-      //   Point{x:5, y:1},
-        
-      //   Point{x:5, y:0},
-      //   Point{x:6, y:0},
-      //   Point{x:7, y:0},
-        
-      //   Point{x:8, y:0},
-      //   Point{x:8, y:1},
-      //   Point{x:8, y:2},
-      //   Point{x:9, y:2},
-      //   Point{x:10, y:2},
-      //   Point{x:10, y:3},
-      //   Point{x:10, y:4},
-      //   Point{x:11, y:4},
-      //   Point{x:11, y:5},
-      //   Point{x:11, y:6},
-      //   Point{x:11, y:7},
-
-      //   Point{x:12, y:7},
-      //   Point{x:12, y:8},
-      //   Point{x:12, y:9},
-      //   Point{x:12, y:10},
-
-      //   Point{x:11, y:10},
-      //   Point{x:11, y:11},
-      //   Point{x:11, y:12},
-
-      // ];
-      // if current.p.actual == (Point{x:12, y:12}) && current.p.full_history_ordered == desired{
-      //   print = true;
-      //   println!("\np1: {:?} {} {:?}", current.p.actual, current.w, current.p.history);
-      //   let mut sum = 0;
-      //   for i in &current.p.full_history_ordered{
-      //     let cost = grid[i.y as usize][i.x as usize];
-      //     sum += cost;
-      //     println!("p2: {i:?} {cost} {sum}");
-      //   }
-      //   let cost = grid[current.p.actual.y as usize][current.p.actual.x as usize];
-      //   sum += cost;
-      //   println!("p3: {:?} {cost} {sum} {:?}", current.p.actual, current.p.history);
-      //   //assert!(false);
-      // }
-
       let cost = path.1 + current.w;
-      if cost > cheaper{
+      if path.0.actual.len(end) + cost as isize > cheaper as isize{
         if print{
           println!("ignoring expansive path");
         }
