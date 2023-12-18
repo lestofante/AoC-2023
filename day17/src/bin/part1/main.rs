@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashSet};
 
 use pathfinding::prelude::astar;
 
@@ -24,17 +24,18 @@ impl Point {
 struct PointHistory {
   actual: Point,
   history: VecDeque<Point>,
+  full_history: HashSet<Point>,
 }
 
 impl PointHistory {
-  fn new(p: Point, history: VecDeque<Point>) -> PointHistory{
-    PointHistory{actual:p, history}
+  fn new(p: Point, history: VecDeque<Point>, full_history: HashSet<Point>) -> PointHistory{
+    PointHistory{actual:p, history, full_history}
   }
 
   fn successors(&self, grid:&Vec<Vec<u32>>) -> Vec<(PointHistory, u32)> {
     let mut successors: Vec<(PointHistory, u32)> = vec!();
 
-    println!("{:?} history {:?}", self.actual, self.history);
+    //println!("{:?} history {:?}", self.actual, self.history);
 
     let mut visited = Point{x:0, y:0};
     assert!(self.history.len() <= 2, "history is {}", self.history.len());
@@ -44,53 +45,56 @@ impl PointHistory {
       visited.y += self.actual.y - v.y;
     }
 
-    println!("visited {visited:?}");
+    //println!("visited {visited:?}");
 
     let mut new_history = self.history.clone();
     while new_history.len() > 1{
       new_history.pop_front();
     }
     new_history.push_back(self.actual);
+    let mut new_full_history = self.full_history.clone();
+    new_full_history.insert(self.actual);
 
-    if visited.x < 3{
+    if visited.x < 4{
       // travel +x ok
       let next = Point::new(self.actual.x + 1, self.actual.y);
-      if next.is_valid(){
-        successors.push((PointHistory::new(next, new_history.clone()), grid[next.y as usize][next.x as usize]));
+      if next.is_valid() && !new_full_history.contains(&next) {
+        successors.push((PointHistory::new(next, new_history.clone(), new_full_history.clone()), grid[next.y as usize][next.x as usize]));
       }
     }
 
-    if visited.x > -3{
+    if visited.x > -4{
       // travel -x ok
       let next = Point::new(self.actual.x - 1, self.actual.y);
-      if next.is_valid(){
-        successors.push((PointHistory::new(next, new_history.clone()), grid[next.y as usize][next.x as usize]));
+      if next.is_valid() && !new_full_history.contains(&next){
+        successors.push((PointHistory::new(next, new_history.clone(), new_full_history.clone()), grid[next.y as usize][next.x as usize]));
       }
     }
 
-    if visited.y < 3{
+    if visited.y < 4{
       // travel +y ok
       let next = Point::new(self.actual.x, self.actual.y + 1);
-      if next.is_valid(){
-        successors.push((PointHistory::new(next, new_history.clone()), grid[next.y as usize][next.x as usize]));
+      if next.is_valid() && !new_full_history.contains(&next){
+        successors.push((PointHistory::new(next, new_history.clone(), new_full_history.clone()), grid[next.y as usize][next.x as usize]));
       }
     }
 
-    if visited.y > -3{
+    if visited.y > -4{
       // travel -y ok
       let next = Point::new(self.actual.x, self.actual.y - 1);
-      if next.is_valid(){
-        successors.push((PointHistory::new(next, new_history.clone()), grid[next.y as usize][next.x as usize]));
+      if next.is_valid() && !new_full_history.contains(&next){
+        successors.push((PointHistory::new(next, new_history.clone(), new_full_history.clone()), grid[next.y as usize][next.x as usize]));
       }
     }
-
+/*
     print!("valid paths ");
     for f in &successors{
       print!("({},{}) ", f.0.actual.x, f.0.actual.y);
     }
+    */
     //print!("new_history {new_history:?}");
-    println!("");
-    println!("");
+    //println!("");
+    //println!("");
 
     successors
   }
@@ -147,14 +151,64 @@ impl std::hash::Hash for PointHistory{
 }
 
 const DATA: &str = include_str!("../../../data/test.txt");
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct PointWeight{
+  p: PointHistory,
+  w: u32,
+}
+
+fn bruteforce(actual: &PointHistory,grid:&Vec<Vec<u32>>, end: &Point, cost: u32, cheaper: &mut u32){
+  for path in actual.successors(grid){
+    if path.0.actual == *end{
+      let cost = cost + path.1;
+      if cost < *cheaper{
+        *cheaper = cost;
+        println!("found path, cost {}", cost + path.1);
+      }
+    }else{
+      return bruteforce(&path.0, &grid, &end, cost + path.1, cheaper);
+    }
+  }
+}
+
+fn bruteforce2(start: &PointHistory, grid: &Vec<Vec<u32>>, end: &Point) {
+  let mut stack: VecDeque<PointWeight> = VecDeque::new();
+  let mut visited: HashSet<PointWeight> = HashSet::new();
+
+  stack.push_back(PointWeight{p:start.clone(), w:grid[start.actual.y as usize][start.actual.x as usize]});
+
+  while let Some(current) = stack.pop_back() {
+    //println!("at: {:?}", current.p.actual);
+    if current.p.actual == *end {
+      println!(">>>>>>>>>.Found path, cost: {} {:?}", current.w, current.p.full_history);
+      //return; // Found the path, so stop searching
+    }
+
+    for path in current.p.successors(grid) {
+      let ris = PointWeight{p:path.0, w: path.1 + current.w};
+      
+      if !visited.contains(&ris) {
+          stack.push_back(ris.clone());
+          visited.insert(ris);
+      }
+    }
+  }
+
+  println!("No valid path found");
+}
+
 
 fn main() {
     // Define your grid with movement costs
 
     let grid:Vec<Vec<u32>> = DATA.lines().map(|l| l.chars().map(|c| c.to_digit(10).unwrap()).collect()).collect();
 
-    let start = PointHistory::new(Point{ x: 0, y: 0 }, vec![].into());
-    let goal = PointHistory::new(Point{ x: 12, y: 12 }, vec![].into());
+    let start = PointHistory::new(Point{ x: 0, y: 0 }, vec![].into(), HashSet::new());
+    let goal = PointHistory::new(Point{ x: 12, y: 12 }, vec![].into(), HashSet::new());
+
+    bruteforce2(&start, &grid, &Point{ x: 12, y: 12 });
+
+    return;
 
     // Use A* algorithm to find the path
     let result = astar(
