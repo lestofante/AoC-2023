@@ -51,21 +51,29 @@ impl PointHistory {
     PointHistory{actual:p, history}
   }
 
-  fn from_dir(&self, d: &Direction, new_history: &VecDeque<Direction>, grid:&Vec<Vec<u32>>) -> Vec<(PointHistory, u32)>{
-    let next = match d{
-        Direction::UP => Point::new(self.actual.x, self.actual.y - 1),
-        Direction::DOWN => Point::new(self.actual.x, self.actual.y + 1),
-        Direction::LEFT => Point::new(self.actual.x - 1, self.actual.y),
-        Direction::RIGHT => Point::new(self.actual.x + 1, self.actual.y),
+  fn from_dir(&self, d: &Direction, new_history: &VecDeque<Direction>, grid:&Vec<Vec<u32>>, minimum_step: isize) -> Vec<(PointHistory, u32)>{
+    
+    let dir = match d{
+        Direction::UP => Point::new(0, -1),
+        Direction::DOWN => Point::new(0, 1),
+        Direction::LEFT => Point::new(-1, 0),
+        Direction::RIGHT => Point::new(1, 0),
     };
 
-    if !next.is_valid(){
-      return vec![];
+    let mut next = self.actual;
+    let mut cost = 0;
+    for _ in 0..minimum_step{
+      next.x += dir.x;
+      next.y += dir.y;
+      if !next.is_valid(){
+        return vec![];
+      }
+      cost += grid[next.y as usize][next.x as usize];
     }
     
     let mut n = new_history.clone();
     n.push_back(d.clone());
-    return vec![(PointHistory::new(next, n), grid[next.y as usize][next.x as usize])];
+    return vec![(PointHistory::new(next, n), cost)];
   }
 
   fn successors(&self, grid:&Vec<Vec<u32>>) -> Vec<(PointHistory, u32)> {
@@ -120,7 +128,7 @@ impl PointHistory {
       if print{
         println!("going forcibly {dir:?}");
       }
-      return self.from_dir(dir, &new_history, grid);
+      return self.from_dir(dir, &new_history, grid, 1);
     }
 
     for dir in [Direction::DOWN, Direction::LEFT, Direction::RIGHT, Direction::UP]{
@@ -128,7 +136,60 @@ impl PointHistory {
         if print{
           println!("going {:?}", dir);
         }
-        successors.append(&mut self.from_dir(&dir, &new_history, grid));
+        successors.append(&mut self.from_dir(&dir, &new_history, grid, 1));
+      }
+    }
+
+    successors
+  }
+
+  fn successors2(&self, grid:&Vec<Vec<u32>>) -> Vec<(PointHistory, u32)> {
+    let mut successors: Vec<(PointHistory, u32)> = vec!();
+
+    let mut print = false;
+
+    if print{
+      println!("{:?} history {:?}", self.actual, self.history);
+    }
+
+    const DESIRED_DIRECTION_HISTORY_LEN: usize = 10-4;
+    assert!(self.history.len() <= DESIRED_DIRECTION_HISTORY_LEN, "history is {}", self.history.len());
+
+    let mut sum_direction:[usize; DESIRED_DIRECTION_HISTORY_LEN] = [0; DESIRED_DIRECTION_HISTORY_LEN];
+    for v in &self.history{
+      let index = v.clone();
+      sum_direction[index as usize] += 1;
+    }
+
+    let last_dir = self.history.back();
+    if print{
+      println!("last direction is {last_dir:?}");
+    }
+    
+    let new_history = {
+      let history_len = self.history.len();
+      if history_len < DESIRED_DIRECTION_HISTORY_LEN{
+        self.history.clone()
+      }else{
+        let mut h = VecDeque::new();
+        for i in (1..DESIRED_DIRECTION_HISTORY_LEN).rev(){
+          h.push_back(self.history.get(history_len - i).expect("i checked for size before!").clone());
+        }
+        h
+      }
+    };
+
+    for dir in [Direction::DOWN, Direction::LEFT, Direction::RIGHT, Direction::UP]{
+      if sum_direction[dir as usize] < 10-4 && !self.history.back().is_some_and(|v| *v == dir.inverse()){
+        if print{
+          println!("going {:?}", dir);
+        }
+        let minimum_step = if last_dir.is_some_and(|d| *d == dir){
+          1
+        }else{
+          4
+        };
+        successors.append(&mut self.from_dir(&dir, &new_history, grid, minimum_step));
       }
     }
 
@@ -206,7 +267,7 @@ fn bruteforce2(start: &PointHistory, grid: &Vec<Vec<u32>>, end: &Point) {
       continue;
     }
 
-    for path in current.p.successors(grid) {
+    for path in current.p.successors2(grid) {
 
       let mut print = false;
       let cost = path.1 + current.w;
@@ -265,9 +326,43 @@ fn main() {
       }
       println!();
     }
+    println!();
     
     let start = PointHistory::new(Point{ x: 0, y: 0 }, vec![].into());
+    let goal = Point{ x: MAP_SIZE-1, y: MAP_SIZE-1 };
 
-    bruteforce2(&start, &grid, &Point{ x: MAP_SIZE-1, y: MAP_SIZE-1 });
+    //bruteforce2(&start, &grid, &Point{ x: MAP_SIZE-1, y: MAP_SIZE-1 });
+    //assert!(false);
+    let result = pathfinding::directed::astar::astar(
+      &start,
+      |p| p.successors2(&grid),
+      |p| p.actual.len(&goal) as u32,
+      |p| p.actual==goal);
 
+    let result = result.expect("no solution found");
+
+    let mut grid = grid.clone();
+    for p in &result.0{
+      grid[p.actual.y as usize][p.actual.x as usize] = 0;
+    }
+
+    for y in &grid{
+      for x in y{
+        if *x == 0{
+          print!("\x1b[31mX\x1b[0m");
+        }else{
+          print!("\x1b[32m{x}\x1b[0m");
+        }
+      }
+      println!();
+    }
+    println!();
+    println!("result: {result:?}");
+    // let mut sum = 0;
+    /*let result = result.unwrap();
+    for (p, w) in &result{
+      sum += w;
+    }
+    println!("cost: {sum:?}");
+    */
 }
